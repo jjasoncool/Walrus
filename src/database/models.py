@@ -28,6 +28,7 @@ class MarineData(Base):
     sea_current_speed_ms = Column(Float)
     sea_current_speed_knots = Column(Float)
     recorded_at = Column(DateTime, default=datetime.datetime.now)
+    updated_at = Column(DateTime, nullable=True)  # 新增更新時間，初始為 None
 
     __table_args__ = (
         UniqueConstraint("date_time", "station", name="uq_date_station"),

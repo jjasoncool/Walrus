@@ -1,6 +1,9 @@
 from sqlalchemy.exc import IntegrityError
-from datetime import datetime, timedelta
 from src.database.models import MarineData, init_db
+from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 def is_record_all_empty(record):
     """檢查記錄是否所有數值欄位為空"""
@@ -32,53 +35,81 @@ def get_empty_dates(station, days=30):
     finally:
         session.close()
 
-def insert_marine_data(data, station="台中"):
+def update_marine_data(data):
+    session = init_db()
+    updated_count = 0
+
+    try:
+        for row in data:
+            # 檢查是否為全空值日期且新數據非全空
+            if any(row.get(key) is not None for key in row.keys() if key not in ["date_time", "station"]):
+                update_dict = {key: row[key] for key in row.keys() if key not in ["date_time", "station"]}
+                update_dict["updated_at"] = datetime.now()  # 更新 updated_at
+                session.query(MarineData).filter_by(
+                    date_time=row["date_time"], station=row["station"]
+                ).update(update_dict)
+                updated_count += 1
+
+        session.commit()
+        logger.info(f"成功更新 {updated_count} 筆資料")
+        return updated_count
+
+    except IntegrityError:
+        session.rollback()
+        logger.warning("更新失敗：發現異常")
+        return updated_count
+    except Exception as e:
+        session.rollback()
+        logger.error(f"更新錯誤: {e}")
+        return updated_count
+    finally:
+        session.close()
+
+def insert_marine_data(data):
     session = init_db()
     inserted_count = 0
 
     try:
         for row in data:
             # 檢查是否已存在
-            exists = session.query(MarineData).filter_by(
-                date_time=row["date_time"], station=station
+            existing = session.query(MarineData).filter_by(
+                date_time=row["date_time"], station=row["station"]
             ).first()
-            if exists:
-                continue
-
-            # 插入新記錄
-            marine_record = MarineData(
-                date_time=row["date_time"],
-                station=station,
-                tide_height=row["tide_height"],
-                wave_height=row["wave_height"],
-                wave_direction=row["wave_direction"],
-                wave_period=row["wave_period"],
-                wind_speed_ms=row["wind_speed_ms"],
-                wind_speed_level=row["wind_speed_level"],
-                wind_direction=row["wind_direction"],
-                max_wind_speed_ms=row["max_wind_speed_ms"],
-                max_wind_speed_level=row["max_wind_speed_level"],
-                sea_temperature=row["sea_temperature"],
-                air_temperature=row["air_temperature"],
-                air_pressure=row["air_pressure"],
-                sea_current_direction=row["sea_current_direction"],
-                sea_current_speed_ms=row["sea_current_speed_ms"],
-                sea_current_speed_knots=row["sea_current_speed_knots"]
-            )
-            session.add(marine_record)
-            inserted_count += 1
+            if not existing:
+                marine_record = MarineData(
+                    date_time=row["date_time"],
+                    station=row["station"],
+                    tide_height=row["tide_height"],
+                    wave_height=row["wave_height"],
+                    wave_direction=row["wave_direction"],
+                    wave_period=row["wave_period"],
+                    wind_speed_ms=row["wind_speed_ms"],
+                    wind_speed_level=row["wind_speed_level"],
+                    wind_direction=row["wind_direction"],
+                    max_wind_speed_ms=row["max_wind_speed_ms"],
+                    max_wind_speed_level=row["max_wind_speed_level"],
+                    sea_temperature=row["sea_temperature"],
+                    air_temperature=row["air_temperature"],
+                    air_pressure=row["air_pressure"],
+                    sea_current_direction=row["sea_current_direction"],
+                    sea_current_speed_ms=row["sea_current_speed_ms"],
+                    sea_current_speed_knots=row["sea_current_speed_knots"]
+                )
+                session.add(marine_record)
+                inserted_count += 1
+            # 若已存在，跳過（覆蓋由 update_marine_data 處理）
 
         session.commit()
-        print(f"成功插入 {inserted_count} 筆新資料")
+        logger.info(f"成功插入 {inserted_count} 筆資料")
         return inserted_count
 
     except IntegrityError:
         session.rollback()
-        print("插入失敗：發現重複資料")
+        logger.warning("插入失敗：發現重複資料")
         return inserted_count
     except Exception as e:
         session.rollback()
-        print(f"插入錯誤: {e}")
+        logger.error(f"插入錯誤: {e}")
         return inserted_count
     finally:
         session.close()

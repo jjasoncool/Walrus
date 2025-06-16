@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from src.database import insert_marine_data, query_marine_data, get_empty_dates
+from src.database import insert_marine_data, update_marine_data, get_empty_dates, query_marine_data
 from src.config import Config
 from datetime import datetime, timedelta
 import logging
@@ -10,17 +10,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def scrape_marine_data():
-    inserted_total = 0
+    total_sent = 0
     try:
-        # 預載 30 天內的全空值日期
-        for station in Config.STATIONS.keys():
-            empty_dates = get_empty_dates(station)
+        # 1. 撈取現有 30 天內全空資料
+        empty_dates_dict = {station: set(get_empty_dates(station)) for station in Config.STATIONS.keys()}
+        for station, empty_dates in empty_dates_dict.items():
             logger.info(f"站點 {station} 預載 {len(empty_dates)} 筆全空值日期")
 
         for station, sources in Config.STATIONS.items():
             logger.info(f"開始處理站點: {station}")
             all_data = []
 
+            # 2. 抓取網站資料
             for source in sources:
                 url = source["url"]
                 source_name = source["source"]
@@ -32,13 +33,13 @@ def scrape_marine_data():
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
 
-                # 提取所有 tr 元素
+                # 擷取所有 tr 元素
                 rows = soup.find_all("tr")
                 if not rows:
                     logger.warning(f"{station} - {source_name} 未找到任何 tr 元素")
                     continue
 
-                # 提取資料行
+                # 擷取資料行
                 data = []
                 for row in rows:
                     cols = row.find_all(["th", "td"])
@@ -75,6 +76,7 @@ def scrape_marine_data():
 
                     data.append({
                         "date_time": date_time,
+                        "station": station,
                         "tide_height": tide_height,
                         "wave_height": wave_height,
                         "wave_direction": wave_direction,
@@ -93,29 +95,35 @@ def scrape_marine_data():
                     })
 
                 all_data.extend(data)
-                logger.info(f"{station} - {source_name} 成功提取 {len(data)} 筆資料")
+                logger.info(f"{station} - {source_name} 成功擷取 {len(data)} 筆資料")
 
-            # 移除重複資料（基於 date_time 和 station）
-            unique_data = {item["date_time"]: item for item in all_data}.values()
+            # 3. 判斷與更新
+            to_update = [item for item in all_data if item["date_time"] in empty_dates_dict[station] and
+                        any(item.get(key) is not None for key in item.keys() if key not in ["date_time", "station"])]
+            update_count = update_marine_data(to_update) if to_update else 0
+
+            # 4. 插入其他數據
+            to_insert = [item for item in all_data if item not in to_update]
+            insert_count = insert_marine_data(to_insert) if to_insert else 0
+
+            # 統計送出數據數量
+            sent_count = len(all_data)
+            total_sent += sent_count
+            logger.info(f"{station} 總共送出 {sent_count} 筆資料，更新 {update_count} 筆，插入 {insert_count} 筆")
 
             # 驗證與昨天的資料（僅為日誌記錄，不影響插入）
             yesterday = datetime.now() - timedelta(days=1)
             yesterday_data = query_marine_data(date=yesterday.strftime("%Y-%m-%d"))
-            for new_record in unique_data:
+            for new_record in all_data:
                 for old_record in yesterday_data:
                     if (new_record["date_time"] == old_record.date_time and
                         new_record["station"] == old_record.station):
                         if any(new_record.get(key) != getattr(old_record, key) for key in new_record.keys() if key != "date_time" and key != "station"):
                             logger.warning(f"{station} 數據不一致: {new_record['date_time']} - 新: {new_record}, 舊: {old_record}")
 
-            # 存入資料庫
-            inserted_count = insert_marine_data(list(unique_data), station)
-            inserted_total += inserted_count
-            logger.info(f"{station} 成功插入或更新 {inserted_count} 筆資料")
-
-        return inserted_total
     except Exception as e:
-        logger.error(f"爬蟲錯誤: {e}")
+        import traceback
+        logger.error(f"爬蟲錯誤: {e}\n{traceback.format_exc()}")
         return 0
 
 def parse_date_time(raw_text):
