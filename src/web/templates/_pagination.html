@@ -1,22 +1,75 @@
-{% macro render_pagination(page, results) %}
+{% macro render_pagination(page, results, total=None, per_page=100) %}
 <nav aria-label="Page navigation">
     <ul class="pagination">
+        <!-- 第一頁按鈕 -->
+        {% if page > 1 %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.args.get('date_start') %}&date_start={{ request.args.get('date_start') }}{% endif %}{% if request.args.get('date_end') %}&date_end={{ request.args.get('date_end') }}{% endif %}{% if request.args.get('station') %}&station={{ request.args.get('station') }}{% endif %}" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&laquo;&laquo;</span>
+            </li>
+        {% endif %}
+
+        <!-- 上一頁按鈕 -->
         {% if page > 1 %}
             <li class="page-item">
                 <a class="page-link" href="?page={{ page - 1 }}{% if request.args.get('date_start') %}&date_start={{ request.args.get('date_start') }}{% endif %}{% if request.args.get('date_end') %}&date_end={{ request.args.get('date_end') }}{% endif %}{% if request.args.get('station') %}&station={{ request.args.get('station') }}{% endif %}">上一頁</a>
             </li>
-        {% endif %}
-        {% set total_pages = (results|length // 10) + 1 %}
-        {% for i in range(max(1, page - 2), min(page + 3, total_pages + 1)) %}
-            <li class="page-item {% if i == page %}active{% endif %}">
-                <a class="page-link" href="?page={{ i }}{% if request.args.get('date_start') %}&date_start={{ request.args.get('date_start') }}{% endif %}{% if request.args.get('date_end') %}&date_end={{ request.args.get('date_end') }}{% endif %}{% if request.args.get('station') %}&station={{ request.args.get('station') }}{% endif %}">{{ i }}</a>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">上一頁</span>
             </li>
-        {% endfor %}
+        {% endif %}
+
+        {% if total is not none %}
+            {% set total_pages = (total + per_page - 1) // per_page %}
+        {% else %}
+            {% set total_pages = (results|length + per_page - 1) // per_page %}
+            {% if results|length == per_page %}
+                {% set total_pages = total_pages + 1 %}
+            {% endif %}
+        {% endif %}
+
+        {% if total_pages > 0 %}
+            {% for i in range(max(1, page - 2), min(page + 3, total_pages + 1)) %}
+                <li class="page-item {% if i == page %}active{% endif %}">
+                    <a class="page-link" href="?page={{ i }}{% if request.args.get('date_start') %}&date_start={{ request.args.get('date_start') }}{% endif %}{% if request.args.get('date_end') %}&date_end={{ request.args.get('date_end') }}{% endif %}{% if request.args.get('station') %}&station={{ request.args.get('station') }}{% endif %}">{{ i }}</a>
+                </li>
+            {% endfor %}
+        {% endif %}
+
+        <!-- 下一頁按鈕 -->
         {% if page < total_pages %}
             <li class="page-item">
                 <a class="page-link" href="?page={{ page + 1 }}{% if request.args.get('date_start') %}&date_start={{ request.args.get('date_start') }}{% endif %}{% if request.args.get('date_end') %}&date_end={{ request.args.get('date_end') }}{% endif %}{% if request.args.get('station') %}&station={{ request.args.get('station') }}{% endif %}">下一頁</a>
             </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">下一頁</span>
+            </li>
         {% endif %}
+
+        <!-- 最後一頁按鈕 -->
+        {% if page < total_pages %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ total_pages }}{% if request.args.get('date_start') %}&date_start={{ request.args.get('date_start') }}{% endif %}{% if request.args.get('date_end') %}&date_end={{ request.args.get('date_end') }}{% endif %}{% if request.args.get('station') %}&station={{ request.args.get('station') }}{% endif %}" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled">
+                <span class="page-link">&raquo;&raquo;</span>
+            </li>
+        {% endif %}
+
+        <!-- 顯示總頁數信息 -->
+        <li class="page-item disabled">
+            <span class="page-link">共 {{ total_pages }} 頁</span>
+        </li>
     </ul>
 </nav>
 {% endmacro %}

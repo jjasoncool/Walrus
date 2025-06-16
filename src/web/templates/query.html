@@ -8,21 +8,33 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
+    <style>
+        .query-btn {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.1rem;
+        }
+    </style>
 </head>
 <body>
     <div class="container mt-5">
         <h1>Marine Data Query</h1>
         <form method="GET" class="mb-4">
+            <!-- 日期選擇器一行 -->
             <div class="row mb-3">
-                <div class="col-md-5">
+                <div class="col-md-6">
                     <label for="date_start">開始日期:</label>
                     <input type="text" class="form-control datepicker" id="date_start" name="date_start" placeholder="例如: 2025-06-13" value="{{ request.args.get('date_start', '') }}">
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-6">
                     <label for="date_end">結束日期:</label>
                     <input type="text" class="form-control datepicker" id="date_end" name="date_end" placeholder="例如: 2025-06-15" value="{{ request.args.get('date_end', '') }}">
                 </div>
-                <div class="col-md-2">
+            </div>
+
+            <!-- 站點選擇器另一行 -->
+            <div class="row mb-3">
+                <div class="col-md-12">
                     <label for="station">站點:</label>
                     <select class="form-control" id="station" name="station">
                         {% for station in stations %}
@@ -31,12 +43,18 @@
                     </select>
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">查詢</button>
+
+            <!-- 寬的查詢按鈕 -->
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <button type="submit" class="btn btn-primary query-btn">查詢</button>
+                </div>
+            </div>
         </form>
 
         <!-- 表格上方頁碼導航 -->
         {% from '_pagination.html' import render_pagination %}
-        {{ render_pagination(page, results) }}
+        {{ render_pagination(page, results, total, 100) }}
 
         <div class="table-responsive">
             <table class="table table-bordered table-striped">
@@ -60,7 +78,6 @@
                         <th>流速(m/s)</th>
                         <th>流速(節)</th>
                         <th>記錄時間</th>
-                        <th>更新時間</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -84,7 +101,6 @@
                         <td>{{ row.sea_current_speed_ms }}</td>
                         <td>{{ row.sea_current_speed_knots }}</td>
                         <td>{{ row.recorded_at }}</td>
-                        <td>{{ row.updated_at }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -92,7 +108,7 @@
         </div>
 
         <!-- 表格下方頁碼導航 -->
-        {{ render_pagination(page, results) }}
+        {{ render_pagination(page, results, total, 100) }}
     </div>
 
     <script>

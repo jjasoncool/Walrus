@@ -1,13 +1,14 @@
 from flask import Blueprint, request, render_template
 from src.database import query_marine_data
 from src.config import Config
+import logging
 
 web_bp = Blueprint("web", __name__)
 
 @web_bp.route("/", methods=["GET", "POST"])
 def query_data():
     results = []
-    stations = [""] + list(Config.STATIONS.keys())  # 動態生成站點選項
+    stations = list(Config.STATIONS.keys())  # 動態生成站點選項
 
     # 從 URL 參數中獲取頁碼和查詢參數
     page = int(request.args.get("page", 1))
@@ -24,4 +25,6 @@ def query_data():
         # 沒有查詢條件時顯示默認結果
         results, total = query_marine_data(page=page)
 
-    return render_template("query.html", results=results, stations=stations, page=page)
+    logging.info(f"查詢結果: {len(results)} 筆資料, 總計: {total} 筆資料")
+
+    return render_template("query.html", results=results, stations=stations, page=page, total=total)
