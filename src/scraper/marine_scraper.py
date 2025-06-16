@@ -109,7 +109,7 @@ def scrape_marine_data():
             # 統計送出數據數量
             sent_count = len(all_data)
             total_sent += sent_count
-            logger.info(f"{station} 總共送出 {sent_count} 筆資料，更新 {update_count} 筆，插入 {insert_count} 筆")
+            logger.info(f"{station} 總共取得 {sent_count} 筆資料，更新 {update_count} 筆，插入 {insert_count} 筆")
 
             # 驗證與昨天的資料（僅為日誌記錄，不影響插入）
             yesterday = datetime.now() - timedelta(days=1)

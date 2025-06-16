@@ -7,7 +7,7 @@ load_dotenv()
 class Config:
     DATABASE_PATH = os.getenv("DATABASE_PATH", "marine_data.db")
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///marine_data.db")
-    SCRAPE_INTERVAL_HOURS = int(os.getenv("SCRAPE_INTERVAL_HOURS", 24))
+    SCRAPE_TIME = os.getenv("SCRAPE_TIME", "00:00")
     FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
     STATIONS = {
