@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Marine Data Query</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- 加入 flatpickr 日期選擇器 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Marine Data Query</h1>
+        <form method="GET" class="mb-4">
+            <div class="row mb-3">
+                <div class="col-md-5">
+                    <label for="date_start">開始日期:</label>
+                    <input type="text" class="form-control datepicker" id="date_start" name="date_start" placeholder="例如: 2025-06-13" value="{{ request.args.get('date_start', '') }}">
+                </div>
+                <div class="col-md-5">
+                    <label for="date_end">結束日期:</label>
+                    <input type="text" class="form-control datepicker" id="date_end" name="date_end" placeholder="例如: 2025-06-15" value="{{ request.args.get('date_end', '') }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="station">站點:</label>
+                    <select class="form-control" id="station" name="station">
+                        {% for station in stations %}
+                            <option value="{{ station }}" {% if station == request.args.get('station', '') %}selected{% endif %}>{{ station }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">查詢</button>
+        </form>
+
+        <!-- 表格上方頁碼導航 -->
+        {% from '_pagination.html' import render_pagination %}
+        {{ render_pagination(page, results) }}
+
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
+                    <tr>
+                        <th>日期</th>
+                        <th>站點</th>
+                        <th>潮高(m)</th>
+                        <th>浪高(m)</th>
+                        <th>浪向</th>
+                        <th>波週期(秒)</th>
+                        <th>風速(m/s)</th>
+                        <th>風速(級)</th>
+                        <th>風向</th>
+                        <th>最大風速(m/s)</th>
+                        <th>最大風速(級)</th>
+                        <th>海溫(℃)</th>
+                        <th>氣溫(℃)</th>
+                        <th>氣壓(百帕)</th>
+                        <th>海流流向</th>
+                        <th>流速(m/s)</th>
+                        <th>流速(節)</th>
+                        <th>記錄時間</th>
+                        <th>更新時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in results %}
+                    <tr>
+                        <td>{{ row.date_time }}</td>
+                        <td>{{ row.station }}</td>
+                        <td>{{ row.tide_height }}</td>
+                        <td>{{ row.wave_height }}</td>
+                        <td>{{ row.wave_direction }}</td>
+                        <td>{{ row.wave_period }}</td>
+                        <td>{{ row.wind_speed_ms }}</td>
+                        <td>{{ row.wind_speed_level }}</td>
+                        <td>{{ row.wind_direction }}</td>
+                        <td>{{ row.max_wind_speed_ms }}</td>
+                        <td>{{ row.max_wind_speed_level }}</td>
+                        <td>{{ row.sea_temperature }}</td>
+                        <td>{{ row.air_temperature }}</td>
+                        <td>{{ row.air_pressure }}</td>
+                        <td>{{ row.sea_current_direction }}</td>
+                        <td>{{ row.sea_current_speed_ms }}</td>
+                        <td>{{ row.sea_current_speed_knots }}</td>
+                        <td>{{ row.recorded_at }}</td>
+                        <td>{{ row.updated_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 表格下方頁碼導航 -->
+        {{ render_pagination(page, results) }}
+    </div>
+
+    <script>
+        // 初始化日期選擇器，不包含時間
+        flatpickr(".datepicker", {
+            enableTime: false,  // 禁用時間選擇
+            dateFormat: "Y-m-d",  // 只顯示日期
+            locale: "zh-tw",
+            allowInput: true
+        });
+    </script>
+</body>
+</html>

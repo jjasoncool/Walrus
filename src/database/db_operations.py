@@ -1,6 +1,7 @@
 from sqlalchemy.exc import IntegrityError
 from src.database.models import MarineData, init_db
 from datetime import datetime, timedelta
+from sqlalchemy import func
 import logging
 
 logger = logging.getLogger(__name__)
@@ -114,17 +115,36 @@ def insert_marine_data(data):
     finally:
         session.close()
 
-def query_marine_data(date=None, station=None, page=1, per_page=100):
+def query_marine_data(date_start=None, date_end=None, station=None, page=1, per_page=100):
     session = init_db()
     try:
         query = session.query(MarineData)
-        if date:
-            query = query.filter_by(date_time=date)
-        if station:
+        if station and station.strip():  # 確保站點不是空字符串
             query = query.filter_by(station=station)
+        elif date_start is None and date_end is None:
+            query = query.filter_by(station="台中")  # 預設 station=台中
+
+        if date_start or date_end:
+            if date_start:
+                # 將開始日期設置為當天 00:00:00
+                start_date = datetime.strptime(date_start, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
+                query = query.filter(MarineData.date_time >= start_date)
+
+            if date_end:
+                # 將結束日期設置為當天 23:59:59
+                end_date = datetime.strptime(date_end, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                query = query.filter(MarineData.date_time <= end_date)
+        else:
+            # 預設 3 天內數據
+            three_days_ago = datetime.now().date() - timedelta(days=3)
+            query = query.filter(func.date(MarineData.date_time) >= three_days_ago)
+
+        # 按照 date_time 降序排列（最新的資料優先顯示）
+        query = query.order_by(MarineData.date_time.desc())
 
         # 分頁
+        total = query.count()
         results = query.offset((page-1)*per_page).limit(per_page).all()
-        return results
+        return results, total
     finally:
         session.close()

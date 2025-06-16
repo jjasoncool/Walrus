@@ -6,11 +6,28 @@
     "configurations": [
 
         {
-            "name": "Python Debug",
+            "name": "Python test Debug",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/test/test.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Flask",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "flask",
+            "env": {
+                "FLASK_APP": "app.py",
+                "FLASK_DEBUG": "1",
+            },
+            "args": [
+                "run",
+                "--no-debugger",
+                "--reload"
+            ],
+            "jinja": true,
+            "justMyCode": false
         }
     ]
 }
