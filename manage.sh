@@ -3,11 +3,96 @@
 # 簡單的指令用於管理 Walrus Marine Data Service
 # 使用方式: ./manage.sh [start|stop|restart|status]
 
+# 自動檢測程式位置並設定應用目錄 - 增強版
+get_script_path() {
+    # 首先嘗試使用 readlink (適用於大多數 Linux 系統)
+    local path
+    if command -v readlink >/dev/null 2>&1; then
+        path=$(readlink -f "$0" 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    fi
+
+    # 如果 readlink 失敗，嘗試使用 realpath
+    if command -v realpath >/dev/null 2>&1; then
+        path=$(realpath "$0" 2>/dev/null)
+        if [ $? -eq 0 ] && [ -n "$path" ]; then
+            echo "$path"
+            return 0
+        fi
+    fi
+
+    # 如果上述方法都失敗，嘗試手動解析
+    local dir=""
+    local script="$0"
+
+    # 處理相對路徑
+    if [[ "$script" != /* ]]; then
+        dir="$PWD"
+        script="$dir/$script"
+    fi
+
+    # 移除所有 "./" 部分
+    script="${script//\/.\//\/}"
+
+    # 處理 "../" 部分
+    while [[ "$script" == */../* ]]; do
+        script="${script/\/[^\/]*\/\.\.\//\/}"
+    done
+
+    echo "$script"
+}
+
+SCRIPT_PATH=$(get_script_path)
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
+# 立即顯示程式路徑（不論測試模式是否開啟）
+echo "程式位置: $SCRIPT_PATH"
+echo "程式目錄: $SCRIPT_DIR"
+echo "當前目錄: $PWD"
+
+# 預設值
+APP_DIR="$SCRIPT_DIR"
+PYTHON_CMD="$APP_DIR/env/bin/python"
+
+# 如果存在 .env 檔案，則載入環境變數
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    echo "載入 .env 設定..."
+    # 使用 . 而不是 source（更兼容各種 shell）
+    . "$SCRIPT_DIR/.env"
+fi
+
+# 測試輸出
+if [ "${DEBUG:-0}" = "1" ]; then
+    echo "測試資訊:"
+    echo "  SCRIPT_PATH: $SCRIPT_PATH"
+    echo "  SCRIPT_DIR: $SCRIPT_DIR"
+    echo "  APP_DIR: $APP_DIR"
+    echo "  PYTHON_CMD: $PYTHON_CMD"
+    echo "  執行位置: $PWD"
+fi
+
+# 僅顯示路徑資訊然後退出（用於測試）
+if [ "$1" = "debug-path" ]; then
+    echo "測試完成，依要求退出"
+    exit 0
+fi
+
+# 確保 APP_DIR 有值
+if [ -z "$APP_DIR" ]; then
+    APP_DIR="$SCRIPT_DIR"
+fi
+
+# 確保 PYTHON_CMD 有值
+if [ -z "$PYTHON_CMD" ]; then
+    PYTHON_CMD="$APP_DIR/env/bin/python"
+fi
+
 # 設定變數
-APP_DIR="/home/egst/Projects/walrus"
 PID_FILE="$APP_DIR/walrus.pid"
 LOG_DIR="$APP_DIR/log"
-PYTHON_CMD="$APP_DIR/env/bin/python"
 APP_CMD="$PYTHON_CMD $APP_DIR/app.py --mode prod"
 
 # 確保日誌目錄存在
@@ -121,8 +206,16 @@ case "$1" in
     status)
         status
         ;;
+    debug-path)
+        # 已在前面處理，添加這裡只是為了讓幫助信息更完整
+        ;;
     *)
-        echo "用法: $0 {start|stop|restart|status}"
+        echo "用法: $0 {start|stop|restart|status|debug-path}"
+        echo "  start      - 啟動服務"
+        echo "  stop       - 停止服務"
+        echo "  restart    - 重啟服務"
+        echo "  status     - 查看服務狀態"
+        echo "  debug-path - 僅顯示路徑資訊用於測試"
         exit 1
         ;;
 esac

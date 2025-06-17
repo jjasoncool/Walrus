@@ -23,7 +23,7 @@ walrus/
 │   ├── scheduler/        # 排程任務
 │   └── web/              # Web 介面和路由
 ├── app.py               # 主應用程式
-├── manage.sh            # 服務管理腳本
+├── manage.sh            # 服務管理指令
 └── walrus.service       # systemd 服務配置
 ```
 
@@ -114,7 +114,7 @@ alembic upgrade head
 
 ## 服務管理
 
-### 使用管理腳本
+### 使用管理指令
 ```bash
 # 啟動服務
 ./manage.sh start
@@ -128,6 +128,27 @@ alembic upgrade head
 # 查看狀態
 ./manage.sh status
 ```
+
+### 管理指令配置
+管理指令 `manage.sh` 使用自動路徑檢測，無需手動配置路徑：
+
+- **智能路徑檢測**：指令會自動檢測其所在目錄，無論從哪裡執行都能正確運作
+- **多重備援機制**：支援多種路徑解析方法，確保在不同環境中的穩定性
+- **調試模式**：可通過設定 `DEBUG=1` 環境變數來顯示路徑解析詳情
+
+```bash
+# 標準執行
+./manage.sh start
+
+# 使用調試模式
+DEBUG=1 ./manage.sh start
+```
+
+指令使用以下路徑進行操作：
+- 應用程式目錄：自動檢測指令所在目錄
+- Python 執行檔：自動檢測為 `<應用程式目錄>/env/bin/python`
+- PID 文件：存放在 `<應用程式目錄>/walrus.pid`
+- 日誌文件：存放在 `<應用程式目錄>/log/` 目錄下
 
 ### 使用 systemd
 請參考 `systemd_setup.md` 獲取更詳細的 systemd 服務設置和管理說明。
