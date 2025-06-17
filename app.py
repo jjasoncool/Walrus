@@ -1,9 +1,12 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
 from flask import Flask
 from src.web.routes import web_bp
 from src.scheduler.scheduler import run_scheduler
 import logging
 import os
-import sys
 from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler  # 明確導入 RotatingFileHandler
 from whitenoise import WhiteNoise  # 導入 WhiteNoise
@@ -84,11 +87,71 @@ def before_request_logging():
     logger.info("收到請求")
 
 if __name__ == "__main__":
-    logger.info("直接執行模式：啟動 Flask 應用與排程")
+    import argparse
 
+    # 解析命令行參數
+    parser = argparse.ArgumentParser(description='Walrus Marine Data Service')
+    parser.add_argument('--mode', choices=['dev', 'prod'], default='dev',
+                       help='執行模式: dev (開發模式) 或 prod (生產模式)')
+    parser.add_argument('--host', default='0.0.0.0',
+                       help='服務主機 (預設: 0.0.0.0)')
+    parser.add_argument('--port', type=int, default=5000,
+                       help='服務埠號 (預設: 5000)')
+    parser.add_argument('--workers', type=int, default=None,
+                       help='工作進程數量 (僅在生產模式下有效)')
+    args = parser.parse_args()
+
+    # 啟動排程器
     scheduler = run_scheduler()
+
     try:
-        app.run(host="0.0.0.0", port=5000)
+        if args.mode == 'dev':
+            # 開發模式: 使用 Flask 內建伺服器
+            logger.info(f"開發模式: 啟動 Flask 應用於 {args.host}:{args.port}")
+            app.run(host=args.host, port=args.port, debug=True)
+        else:
+            # 生產模式: 使用 Gunicorn
+            try:
+                import multiprocessing
+                from gunicorn.app.base import BaseApplication
+
+                # 計算工作進程數量，如果未指定則使用 CPU 核心數 * 2 + 1
+                workers = args.workers
+                if workers is None:
+                    workers = (multiprocessing.cpu_count() * 2) + 1
+
+                class GunicornApp(BaseApplication):
+                    def __init__(self, app, options=None):
+                        self.options = options or {}
+                        self.application = app
+                        super().__init__()
+
+                    def load_config(self):
+                        for key, value in self.options.items():
+                            if key in self.cfg.settings and value is not None:
+                                self.cfg.set(key.lower(), value)
+
+                    def load(self):
+                        return self.application
+
+                # Gunicorn 配置
+                options = {
+                    'bind': f"{args.host}:{args.port}",
+                    'workers': workers,
+                    'worker_class': 'sync',  # 使用同步工作進程，穩定可靠
+                    'timeout': 120,
+                    'keepalive': 5,
+                    'loglevel': 'info',
+                    'errorlog': os.path.join(project_root, 'log', 'gunicorn_error.log'),
+                    'accesslog': os.path.join(project_root, 'log', 'gunicorn_access.log'),
+                    'proc_name': 'walrus'
+                }
+
+                logger.info(f"生產模式: 啟動 Gunicorn 於 {args.host}:{args.port} 使用 {workers} 個工作進程")
+                GunicornApp(app, options).run()
+            except ImportError as e:
+                logger.error(f"無法啟動生產模式: {e}. 請確認已安裝 gunicorn: conda install gunicorn")
+                sys.exit(1)
     except KeyboardInterrupt:
         scheduler.shutdown()
         logger.info("應用與排程已關閉")

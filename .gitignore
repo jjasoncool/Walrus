@@ -3,3 +3,4 @@ env/
 .env
 *.db
 *.log
+*.pid

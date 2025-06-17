@@ -1,0 +1,36 @@
+[Unit]
+Description=Walrus Marine Data Service
+After=network.target
+
+[Service]
+# 使用者和群組
+User=egst
+Group=egst
+
+# 工作目錄和環境設定
+WorkingDirectory=/home/egst/Projects/walrus
+Environment="PATH=/home/egst/Projects/walrus/env/bin:/usr/local/bin:/usr/bin:/bin"
+
+# 啟動和停止命令
+ExecStart=/home/egst/Projects/walrus/manage.sh start
+ExecStop=/home/egst/Projects/walrus/manage.sh stop
+
+# 重啟設定
+Restart=on-failure
+RestartSec=5
+
+# 進程類型 (使用 forking 因為 manage.sh 會在後台啟動程序)
+Type=forking
+
+# PID 文件位置
+PIDFile=/home/egst/Projects/walrus/walrus.pid
+
+# 超時設定
+TimeoutStopSec=20
+
+# 安全性設定
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

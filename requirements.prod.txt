@@ -1,0 +1,16 @@
+# 生產環境所需套件
+# 安裝指令: pip install -r requirements.prod.txt
+
+# 已有的套件
+-r requirements.txt
+
+# 生產環境伺服器
+gunicorn>=21.2.0
+
+# 效能監控 (可選)
+# prometheus-flask-exporter>=0.23.0
+# flask-monitoringdashboard>=3.1.2
+
+# 安全增強 (可選)
+# Flask-Limiter>=3.5.0
+# Flask-Caching>=2.1.0
