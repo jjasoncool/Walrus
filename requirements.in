@@ -1,0 +1,15 @@
+# Walrus Marine Data Service 核心依賴
+Flask
+APScheduler
+SQLAlchemy
+alembic
+requests
+beautifulsoup4
+python-dotenv
+gunicorn
+whitenoise
+openpyxl
+pandas
+
+# 開發依賴
+pip-tools

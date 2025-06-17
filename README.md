@@ -136,3 +136,45 @@ alembic upgrade head
 - 應用程式日誌: `log/walrus_stdout.log` 和 `log/walrus_stderr.log`
 - Gunicorn 日誌: `log/gunicorn_error.log` 和 `log/gunicorn_access.log`
 - 爬蟲日誌: `log/marine_scraper.log`
+
+## 依賴管理
+
+由於本專案使用 Conda 環境，直接使用 `pip freeze` 產生的 requirements.txt 會包含 Conda 特定路徑，不適合直接在其他環境中使用。建議使用以下方法生成標準的 requirements.txt：
+
+### 生成標準 requirements.txt
+
+1. 首先創建 `requirements.in` 文件，列出主要依賴（不包含版本號）：
+
+```bash
+# 創建或編輯 requirements.in
+cat > requirements.in << EOF
+# Walrus Marine Data Service 核心依賴
+Flask
+APScheduler
+SQLAlchemy
+alembic
+requests
+beautifulsoup4
+python-dotenv
+gunicorn
+whitenoise
+openpyxl
+pandas
+
+# 開發依賴
+pip-tools
+EOF
+```
+
+2. 使用 pip-tools 生成標準 requirements.txt：
+
+```bash
+# 安裝 pip-tools
+pip install pip-tools
+
+# 生成不含雜湊值的 requirements.txt
+pip-compile requirements.in --output-file requirements.txt
+
+# 或生成包含雜湊值的 requirements.txt（更安全）
+pip-compile requirements.in --generate-hashes --output-file requirements.txt
+```
