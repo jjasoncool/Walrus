@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh-tw.js"></script>
+    <!-- 引入本地靜態資源 -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
     <style>
         .query-btn {
             width: 100%;
@@ -116,7 +119,7 @@
         flatpickr(".datepicker", {
             enableTime: false,  // 禁用時間選擇
             dateFormat: "Y-m-d",  // 只顯示日期
-            locale: "zh-tw",
+            locale: "zh_tw",
             allowInput: true
         });
     </script>
