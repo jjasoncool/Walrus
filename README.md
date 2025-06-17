@@ -1,4 +1,31 @@
-# Walrus 專案說明文件
+# Walrus 海洋資料採集與管理系統
+
+Walrus 是一個專門用於海洋數據的採集、存儲和查詢的系統。它可以自動從多個來源抓取海洋觀測數據、存儲到資料庫中，並提供 Web 界面進行查詢和匯出。
+
+## 功能特點
+
+- **多站點資料採集**：支援從多個海洋觀測站點採集數據
+- **自動化排程**：使用 APScheduler 定時抓取最新數據
+- **資料庫管理**：使用 SQLAlchemy 和 Alembic 進行資料庫操作和遷移
+- **Web 查詢介面**：使用 Flask 提供簡潔的 Web 查詢界面
+- **資料匯出**：支援將查詢結果匯出為 Excel 格式
+- **生產環境部署**：集成 Gunicorn 支援高效能部署
+
+## 專案結構
+
+```
+walrus/
+├── alembic/              # 資料庫遷移配置
+├── log/                  # 日誌文件
+├── src/
+│   ├── database/         # 資料庫模型和操作
+│   ├── scraper/          # 數據抓取相關程式
+│   ├── scheduler/        # 排程任務
+│   └── web/              # Web 介面和路由
+├── app.py               # 主應用程式
+├── manage.sh            # 服務管理腳本
+└── walrus.service       # systemd 服務配置
+```
 
 ## 環境設定指令 (Environment Setup)
 
@@ -76,6 +103,36 @@ alembic upgrade head
 ```
 
 4. 啟動應用程式
+   - 開發模式
+   ```bash
+   python app.py
+   ```
+   - 生產模式
+   ```bash
+   python app.py --mode prod
+   ```
+
+## 服務管理
+
+### 使用管理腳本
 ```bash
-python app.py
+# 啟動服務
+./manage.sh start
+
+# 停止服務
+./manage.sh stop
+
+# 重啟服務
+./manage.sh restart
+
+# 查看狀態
+./manage.sh status
 ```
+
+### 使用 systemd
+請參考 `systemd_setup.md` 獲取更詳細的 systemd 服務設置和管理說明。
+
+## 日誌位置
+- 應用程式日誌: `log/walrus_stdout.log` 和 `log/walrus_stderr.log`
+- Gunicorn 日誌: `log/gunicorn_error.log` 和 `log/gunicorn_access.log`
+- 爬蟲日誌: `log/marine_scraper.log`
