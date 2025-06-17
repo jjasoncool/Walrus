@@ -35,17 +35,42 @@ function setupTableSorting() {
 function sortTable(table, columnIndex) {
     const tbody = table.querySelector('tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
-    const isNumeric = !isNaN(parseFloat(rows[0].querySelectorAll('td')[columnIndex].textContent));
+    const header = table.querySelectorAll('th')[columnIndex];
+
+    // 切換排序方向
+    const sortDirection = header.getAttribute('data-sort-direction') === 'asc' ? 'desc' : 'asc';
+
+    // 重置所有表頭的排序方向
+    table.querySelectorAll('th').forEach(th => {
+        th.removeAttribute('data-sort-direction');
+        th.classList.remove('sort-asc', 'sort-desc');
+    });
+
+    // 設置當前表頭的排序方向
+    header.setAttribute('data-sort-direction', sortDirection);
+    header.classList.add(`sort-${sortDirection}`);
+
+    // 檢查第一個單元格的內容來判斷列類型
+    const cellContent = rows[0]?.querySelectorAll('td')[columnIndex]?.textContent.trim() || '';
+    const isNumeric = !isNaN(parseFloat(cellContent));
+    const isDate = /^\d{4}-\d{2}-\d{2}( \d{2}:\d{2})?$/.test(cellContent);
 
     const sortedRows = rows.sort((a, b) => {
         const aValue = a.querySelectorAll('td')[columnIndex].textContent.trim();
         const bValue = b.querySelectorAll('td')[columnIndex].textContent.trim();
 
-        if (isNumeric) {
-            return parseFloat(aValue) - parseFloat(bValue);
+        let result;
+        if (isDate) {
+            // 日期時間格式處理
+            result = new Date(aValue) - new Date(bValue);
+        } else if (isNumeric) {
+            result = parseFloat(aValue) - parseFloat(bValue);
         } else {
-            return aValue.localeCompare(bValue);
+            result = aValue.localeCompare(bValue);
         }
+
+        // 如果是降序，反轉結果
+        return sortDirection === 'asc' ? result : -result;
     });
 
     // 清空表格並添加排序後的行
