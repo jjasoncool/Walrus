@@ -113,9 +113,9 @@ def scrape_marine_data():
 
             # 驗證與昨天的資料（僅為日誌記錄，不影響插入）
             yesterday = datetime.now() - timedelta(days=1)
-            yesterday_data = query_marine_data(date=yesterday.strftime("%Y-%m-%d"))
+            yesterday_results, _ = query_marine_data(date_start=yesterday.strftime("%Y-%m-%d"), date_end=yesterday.strftime("%Y-%m-%d"), station=station)
             for new_record in all_data:
-                for old_record in yesterday_data:
+                for old_record in yesterday_results:
                     if (new_record["date_time"] == old_record.date_time and
                         new_record["station"] == old_record.station):
                         if any(new_record.get(key) != getattr(old_record, key) for key in new_record.keys() if key != "date_time" and key != "station"):
