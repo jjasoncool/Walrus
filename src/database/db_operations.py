@@ -126,18 +126,21 @@ def query_marine_data(date_start=None, date_end=None, station=None, page=1, per_
 
         if date_start or date_end:
             if date_start:
-                # 將開始日期設置為當天 00:00:00
-                start_date = datetime.strptime(date_start, "%Y-%m-%d").replace(hour=0, minute=0, second=0)
-                query = query.filter(MarineData.date_time >= start_date)
+                # 轉換為字串格式 "YYYY-MM-DD 00:00" 以匹配資料庫中的存儲格式
+                start_date_str = datetime.strptime(date_start, "%Y-%m-%d").replace(hour=0, minute=0, second=0).strftime("%Y-%m-%d %H:%M")
+                query = query.filter(MarineData.date_time >= start_date_str)
+                logger.info(f"查詢開始日期: {start_date_str}")
 
             if date_end:
-                # 將結束日期設置為當天 23:59:59
-                end_date = datetime.strptime(date_end, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-                query = query.filter(MarineData.date_time <= end_date)
+                # 轉換為字串格式 "YYYY-MM-DD 23:59" 以匹配資料庫中的存儲格式
+                end_date_str = datetime.strptime(date_end, "%Y-%m-%d").replace(hour=23, minute=59, second=59).strftime("%Y-%m-%d %H:%M")
+                query = query.filter(MarineData.date_time <= end_date_str)
+                logger.info(f"查詢結束日期: {end_date_str}")
         else:
             # 預設 3 天內數據
-            three_days_ago = datetime.now().date() - timedelta(days=3)
-            query = query.filter(func.date(MarineData.date_time) >= three_days_ago)
+            three_days_ago = (datetime.now().date() - timedelta(days=3)).strftime("%Y-%m-%d")
+            query = query.filter(MarineData.date_time >= three_days_ago)
+            logger.info(f"使用預設查詢範圍: 從 {three_days_ago} 開始")
 
         # 按照 date_time 降序排列（最新的資料優先顯示）
         query = query.order_by(MarineData.date_time.desc())
