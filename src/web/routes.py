@@ -25,6 +25,6 @@ def query_data():
         # 沒有查詢條件時顯示默認結果
         results, total = query_marine_data(page=page)
 
-    logging.info(f"查詢結果: {len(results)} 筆資料, 總計: {total} 筆資料")
+    logging.info(f"查詢結果: 第{page}頁, {len(results)} 筆資料, 總計: {total} 筆資料")
 
     return render_template("query.html", results=results, stations=stations, page=page, total=total)
