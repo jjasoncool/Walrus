@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 設置日期快捷按鈕
     setupDateShortcuts();
+
+    // 設置 Excel 匯出功能
+    setupExcelExport();
 });
 
 // 設置表格排序
@@ -169,4 +172,53 @@ function formatDate(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+}
+
+// 設置 Excel 匯出功能
+function setupExcelExport() {
+    const exportBtn = document.getElementById('export-excel');
+    if (!exportBtn) return;
+
+    exportBtn.addEventListener('click', function() {
+        // 獲取當前查詢參數
+        const date_start = document.getElementById('date_start').value;
+        const date_end = document.getElementById('date_end').value;
+        const station = document.getElementById('station').value;
+
+        // 檢查日期範圍
+        if (!date_start || !date_end) {
+            alert("開始日期與結束日期為必填欄位");
+            return;
+        }
+
+        // 檢查資料表內是否有資料
+        const tableRows = document.querySelector('table tbody').children.length;
+        if (tableRows === 0) {
+            alert("查無資料，請確認日期是否正確");
+            return;
+        }
+
+        // 構建匯出URL
+        let exportUrl = '/export_excel?';
+        const params = [];
+
+        if (date_start) params.push(`date_start=${date_start}`);
+        if (date_end) params.push(`date_end=${date_end}`);
+        if (station) params.push(`station=${station}`);
+
+        exportUrl += params.join('&');
+
+        // 顯示正在處理的消息
+        this.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>處理中...';
+        this.disabled = true;
+
+        // 在新窗口中打開下載連結
+        window.location.href = exportUrl;
+
+        // 3秒後恢復按鈕狀態
+        setTimeout(() => {
+            this.innerHTML = '<i class="bi bi-file-excel me-1"></i>匯出Excel';
+            this.disabled = false;
+        }, 3000);
+    });
 }

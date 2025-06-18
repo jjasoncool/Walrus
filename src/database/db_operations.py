@@ -142,9 +142,17 @@ def query_marine_data(date_start=None, date_end=None, station=None, page=1, per_
         # 按照 date_time 降序排列（最新的資料優先顯示）
         query = query.order_by(MarineData.date_time.desc())
 
-        # 分頁
+        # 計算總數
         total = query.count()
-        results = query.offset((page-1)*per_page).limit(per_page).all()
+
+        # 當 per_page 為 None 時，獲取全部結果（用於導出Excel）
+        if per_page is None:
+            results = query.all()
+            logger.info(f"查詢全部數據: 共 {total} 筆資料")
+        else:
+            # 正常分頁
+            results = query.offset((page-1)*per_page).limit(per_page).all()
+
         return results, total
     finally:
         session.close()
