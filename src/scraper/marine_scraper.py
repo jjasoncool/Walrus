@@ -4,6 +4,7 @@ from src.database import insert_marine_data, update_marine_data, get_empty_dates
 from src.config import Config
 from datetime import datetime, timedelta
 import logging
+from fake_useragent import UserAgent
 
 # 設定日誌
 logging.basicConfig(level=logging.INFO)
@@ -12,6 +13,9 @@ logger = logging.getLogger(__name__)
 def scrape_marine_data():
     total_sent = 0
     try:
+        # 初始化 UserAgent 產生器
+        ua = UserAgent()
+
         # 1. 撈取現有 30 天內全空資料
         empty_dates_dict = {station: set(get_empty_dates(station)) for station in Config.STATIONS.keys()}
         for station, empty_dates in empty_dates_dict.items():
@@ -25,10 +29,11 @@ def scrape_marine_data():
             for source in sources:
                 url = source["url"]
                 source_name = source["source"]
-                # 模擬瀏覽器請求
+                # 使用 fake-useragent 產生隨機的 User-Agent
                 headers = {
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                    "User-Agent": ua.random
                 }
+                logger.info(f"使用 User-Agent: {headers['User-Agent']}")
                 response = requests.get(url, headers=headers, timeout=10)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
