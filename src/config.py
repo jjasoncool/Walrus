@@ -10,7 +10,7 @@ class Config:
     SCRAPE_TIME = os.getenv("SCRAPE_TIME", "00:00")
     FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     FLASK_PORT = int(os.getenv("FLASK_PORT", 5000))
-    NSEA_SCREENSHOT_TIME = os.getenv("NSEA_SCREENSHOT_TIME", "12:10")
+    NSEA_SCREENSHOT_TIME = os.getenv("NSEA_SCREENSHOT_TIME", "06:00")
     NSEA_SCREENSHOT_SOURCE_URL = os.getenv("NSEA_SCREENSHOT_SOURCE_URL", "https://www.cwa.gov.tw/V8/C/M/NSea.html")
     NSEA_SCREENSHOT_STORAGE_DIR = os.getenv("NSEA_SCREENSHOT_STORAGE_DIR", "storage/nsea_forecast_screenshots")
     NSEA_SCREENSHOT_TIMEOUT_MS = int(os.getenv("NSEA_SCREENSHOT_TIMEOUT_MS", 30000))

@@ -1,5 +1,6 @@
 import logging
 import smtplib
+import argparse
 from email.message import EmailMessage
 from typing import Iterable
 
@@ -63,3 +64,24 @@ def send_nsea_failure_summary(snapshot_date: str, failures: Iterable[dict]) -> b
         subject=f"[Walrus] 近海漁業預報截圖失敗 - {snapshot_date}",
         body="\n".join(lines),
     )
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="測試 Walrus SMTP Email 通知設定")
+    parser.add_argument("--subject", default="[Walrus] Email 測試", help="測試信主旨")
+    parser.add_argument("--body", default="這是一封 Walrus SMTP 測試信。", help="測試信內容")
+    return parser.parse_args()
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    args = parse_args()
+    sent = send_email(args.subject, args.body)
+    if sent:
+        print("Email 測試信已送出")
+    else:
+        print("Email 測試信未送出，請檢查 EMAIL_ENABLED 與 SMTP 設定/log")
+
+
+if __name__ == "__main__":
+    main()

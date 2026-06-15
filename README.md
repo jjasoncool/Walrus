@@ -176,7 +176,7 @@ storage/nsea_forecast_screenshots/YYYY/MM/DD/
 ### 相關 `.env` 設定
 
 ```env
-NSEA_SCREENSHOT_TIME=12:10
+NSEA_SCREENSHOT_TIME=06:00
 NSEA_SCREENSHOT_SOURCE_URL=https://www.cwa.gov.tw/V8/C/M/NSea.html
 NSEA_SCREENSHOT_STORAGE_DIR=storage/nsea_forecast_screenshots
 NSEA_SCREENSHOT_TIMEOUT_MS=30000
@@ -191,7 +191,7 @@ EMAIL_FROM=walrus@example.com
 EMAIL_TO=admin@example.com
 ```
 
-排程啟動後，近海漁業預報截圖任務會依 `NSEA_SCREENSHOT_TIME` 每日執行一次，預設為 `12:10`。
+排程啟動後，近海漁業預報截圖任務會依 `NSEA_SCREENSHOT_TIME` 每日執行一次，預設為 `06:00`。
 
 ## 服務管理
 
