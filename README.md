@@ -112,6 +112,87 @@ alembic upgrade head
    python app.py --mode prod
    ```
 
+## 近海漁業預報截圖
+
+本系統支援每日自動擷取中央氣象署「近海漁業」線上頁面主要內容區截圖。截圖任務使用 Playwright 操作線上頁面，逐一切換 NSea 海域並截取 `main.main-content`。
+
+### Playwright / Chromium 安裝
+
+Windows 與 Linux 使用相同 Python API；差異主要在瀏覽器 runtime 與 Linux 系統相依套件。請在專案 conda/venv 環境中安裝：
+
+```bash
+pip install playwright
+playwright install chromium
+```
+
+Linux server 若缺少 Chromium 系統相依套件，Playwright 會在錯誤訊息中提示需要安裝的套件。可依部署環境使用系統套件管理工具安裝；若環境允許，也可參考 Playwright 官方建議：
+
+```bash
+playwright install-deps chromium
+```
+
+> 注意：`playwright install-deps` 可能需要系統管理權限；若 production 主機不能使用 sudo，請請系統管理者依 Playwright 提示安裝相依套件。
+
+### 手動測試單一海域操作
+
+Phase 1 診斷腳本可確認 CWA 線上頁面切換與截圖是否正常：
+
+```bash
+python -m src.snapshot.test_nsea_page_control --area-id NSea03
+```
+
+若要觀察瀏覽器實際操作：
+
+```bash
+python -m src.snapshot.test_nsea_page_control --area-id NSea03 --headed
+```
+
+成功後會輸出測試圖：
+
+```text
+storage/debug/nsea_NSea03_test.png
+```
+
+### 手動產生每日全部海域截圖
+
+```bash
+python -m src.snapshot.nsea_screenshot
+```
+
+指定日期：
+
+```bash
+python -m src.snapshot.nsea_screenshot --date 2026-06-15
+```
+
+輸出位置預設為：
+
+```text
+storage/nsea_forecast_screenshots/YYYY/MM/DD/
+```
+
+每次任務會產生各海域 PNG 與 `metadata.json`。若有海域失敗，且 `.env` 中 `EMAIL_ENABLED=true`，系統會寄出 email summary。
+
+### 相關 `.env` 設定
+
+```env
+NSEA_SCREENSHOT_TIME=12:10
+NSEA_SCREENSHOT_SOURCE_URL=https://www.cwa.gov.tw/V8/C/M/NSea.html
+NSEA_SCREENSHOT_STORAGE_DIR=storage/nsea_forecast_screenshots
+NSEA_SCREENSHOT_TIMEOUT_MS=30000
+
+EMAIL_ENABLED=false
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_USE_TLS=true
+EMAIL_FROM=walrus@example.com
+EMAIL_TO=admin@example.com
+```
+
+排程啟動後，近海漁業預報截圖任務會依 `NSEA_SCREENSHOT_TIME` 每日執行一次，預設為 `12:10`。
+
 ## 服務管理
 
 ### 使用管理指令
@@ -177,8 +258,10 @@ alembic
 requests
 beautifulsoup4
 python-dotenv
+playwright
 gunicorn
 whitenoise
+fake-useragent
 openpyxl
 pandas
 

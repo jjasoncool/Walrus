@@ -56,6 +56,10 @@ pandas==2.3.0
     # via -r requirements.in
 pip-tools==7.4.1
     # via -r requirements.in
+playwright==1.52.0
+    # via -r requirements.in
+pyee==13.0.0
+    # via playwright
 pyproject-hooks==1.2.0
     # via
     #   build
@@ -80,6 +84,7 @@ typing-extensions==4.14.0
     # via
     #   alembic
     #   beautifulsoup4
+    #   pyee
     #   sqlalchemy
 tzdata==2025.2
     # via pandas

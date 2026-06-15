@@ -111,5 +111,7 @@ dependencies:
   - pip:
       - build==1.2.2.post1
       - pip-tools==7.4.1
+      - playwright==1.52.0
+      - pyee==13.0.0
       - pyproject-hooks==1.2.0
 prefix: /home/egst/Projects/walrus/env

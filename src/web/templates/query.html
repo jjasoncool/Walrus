@@ -19,11 +19,158 @@
             padding: 10px;
             font-size: 1.1rem;
         }
+
+        .screenshot-preview-link {
+            display: block;
+            cursor: zoom-in;
+        }
+
+        .image-lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 1050;
+            background: rgba(0, 0, 0, 0.82);
+            padding: 24px;
+        }
+
+        .image-lightbox.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-lightbox-content {
+            width: min(1200px, 96vw);
+            max-height: 94vh;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .image-lightbox-body {
+            overflow: auto;
+            background: #f8f9fa;
+            text-align: center;
+        }
+
+        .image-lightbox-body img {
+            max-width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
     <div class="container mt-5">
         <h1>Marine Data Query</h1>
+
+        <ul class="nav nav-tabs mb-4">
+            <li class="nav-item">
+                <a class="nav-link {% if view_mode == 'marine_data' %}active{% endif %}" href="{{ url_for('web.query_data') }}">
+                    海洋觀測資料
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if view_mode == 'nsea_screenshots' %}active{% endif %}" href="{{ url_for('web.nsea_screenshots') }}">
+                    近海漁業預報截圖
+                </a>
+            </li>
+        </ul>
+
+        {% if view_mode == 'nsea_screenshots' %}
+        <section class="mb-4">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="h4 mb-3">近海漁業預報截圖瀏覽</h2>
+                    <form method="GET" action="{{ url_for('web.nsea_screenshots') }}" class="row g-3 align-items-end">
+                        <div class="col-md-6">
+                            <label for="snapshot-date" class="form-label">截圖日期</label>
+                            <input
+                                type="text"
+                                class="form-control datepicker"
+                                id="snapshot-date"
+                                name="date"
+                                value="{{ selected_date }}"
+                                placeholder="YYYY-MM-DD"
+                                list="available-snapshot-dates"
+                                data-available-dates='{{ available_dates|tojson }}'
+                            >
+                            <datalist id="available-snapshot-dates">
+                                {% for snapshot_date in available_dates %}
+                                <option value="{{ snapshot_date }}"></option>
+                                {% endfor %}
+                            </datalist>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary w-100">查詢截圖</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if metadata %}
+            <div class="alert alert-info">
+                <div><strong>日期：</strong>{{ metadata.snapshot_date }}</div>
+                <div><strong>來源：</strong><a href="{{ metadata.source_url }}" target="_blank" rel="noopener noreferrer">{{ metadata.source_url }}</a></div>
+                <div><strong>建立時間：</strong>{{ metadata.created_at }}</div>
+                <div><strong>結果：</strong>{{ metadata.success }}/{{ metadata.total }} 成功，{{ metadata.failed }} 失敗</div>
+            </div>
+
+            <div class="row g-4">
+                {% for area in areas %}
+                <div class="col-md-6 col-xl-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                            <span>{{ area.area_id }} {{ area.area_name }}</span>
+                            <div class="d-flex align-items-center gap-2">
+                                {% if area.image_url %}
+                                <a
+                                    class="btn btn-sm btn-outline-primary"
+                                    href="{{ area.image_url }}"
+                                    download="{{ area.file_name }}"
+                                    title="下載 {{ area.area_name }} 截圖"
+                                >
+                                    <i class="bi bi-download me-1"></i>下載
+                                </a>
+                                {% endif %}
+                                {% if area.status != 'success' %}
+                                <span class="badge bg-danger">失敗</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            {% if area.image_url %}
+                            <a
+                                href="{{ area.image_url }}"
+                                class="screenshot-preview-link"
+                                data-image-url="{{ area.image_url }}"
+                                data-file-name="{{ area.file_name }}"
+                                data-title="{{ area.area_id }} {{ area.area_name }}"
+                                title="點擊放大預覽 {{ area.area_name }}"
+                            >
+                                <img src="{{ area.image_url }}" class="img-fluid rounded border" alt="{{ area.area_name }} 截圖">
+                            </a>
+                            {% else %}
+                            <div class="alert alert-warning mb-0">沒有可顯示的截圖：{{ area.error or '未知錯誤' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer small text-muted">
+                            <div>預報時間：{{ area.forecast_time or '無資料' }}</div>
+                            <div>有效期間：{{ area.range_time or '無資料' }}</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                找不到 {{ selected_date }} 的近海漁業預報截圖。請確認排程是否已執行，或改選其他日期。
+            </div>
+            {% endif %}
+        </section>
+        {% else %}
         <form method="GET" class="mb-4">
             <!-- 日期選擇器一行 -->
             <div class="row mb-3">
@@ -129,15 +276,97 @@
 
         <!-- 表格下方頁碼導航 -->
         {{ render_pagination(page, results, total, 100) }}
+        {% endif %}
+    </div>
+
+    <div id="image-lightbox" class="image-lightbox" aria-hidden="true">
+        <div class="image-lightbox-content">
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                <h3 id="image-lightbox-title" class="h5 mb-0">截圖預覽</h3>
+                <button type="button" id="image-lightbox-close" class="btn-close" aria-label="關閉預覽"></button>
+            </div>
+            <div class="image-lightbox-body p-3">
+                <img id="image-lightbox-img" src="" alt="截圖預覽">
+            </div>
+            <div class="d-flex justify-content-end gap-2 p-3 border-top">
+                <a id="image-lightbox-open" class="btn btn-outline-secondary" href="#" target="_blank" rel="noopener noreferrer">
+                    開新分頁
+                </a>
+                <a id="image-lightbox-download" class="btn btn-primary" href="#" download>
+                    <i class="bi bi-download me-1"></i>下載
+                </a>
+            </div>
+        </div>
     </div>
 
     <script>
         // 初始化日期選擇器，不包含時間
-        flatpickr(".datepicker", {
-            enableTime: false,  // 禁用時間選擇
-            dateFormat: "Y-m-d",  // 只顯示日期
-            locale: "zh_tw",
-            allowInput: true
+        document.querySelectorAll(".datepicker").forEach((input) => {
+            const options = {
+                enableTime: false,  // 禁用時間選擇
+                dateFormat: "Y-m-d",  // 只顯示日期
+                locale: "zh_tw",
+                allowInput: true
+            };
+
+            if (input.id === "snapshot-date") {
+                const availableDates = JSON.parse(input.dataset.availableDates || "[]");
+                if (availableDates.length > 0) {
+                    options.enable = availableDates;
+                    options.disableMobile = true;
+                }
+            }
+
+            flatpickr(input, options);
+        });
+
+        const lightbox = document.getElementById("image-lightbox");
+        const lightboxTitle = document.getElementById("image-lightbox-title");
+        const lightboxImg = document.getElementById("image-lightbox-img");
+        const lightboxOpen = document.getElementById("image-lightbox-open");
+        const lightboxDownload = document.getElementById("image-lightbox-download");
+        const lightboxClose = document.getElementById("image-lightbox-close");
+
+        function closeLightbox() {
+            lightbox.classList.remove("show");
+            lightbox.setAttribute("aria-hidden", "true");
+            lightboxImg.src = "";
+        }
+
+        document.querySelectorAll(".screenshot-preview-link").forEach((link) => {
+            link.addEventListener("click", (event) => {
+                event.preventDefault();
+                const imageUrl = link.dataset.imageUrl;
+                const fileName = link.dataset.fileName;
+                const title = link.dataset.title;
+
+                lightboxTitle.textContent = title || "截圖預覽";
+                lightboxImg.src = imageUrl;
+                lightboxImg.alt = `${title || "截圖"} 預覽`;
+                lightboxOpen.href = imageUrl;
+                lightboxDownload.href = imageUrl;
+                lightboxDownload.setAttribute("download", fileName || "nsea-screenshot.png");
+                lightbox.classList.add("show");
+                lightbox.setAttribute("aria-hidden", "false");
+            });
+        });
+
+        if (lightboxClose) {
+            lightboxClose.addEventListener("click", closeLightbox);
+        }
+
+        if (lightbox) {
+            lightbox.addEventListener("click", (event) => {
+                if (event.target === lightbox) {
+                    closeLightbox();
+                }
+            });
+        }
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && lightbox.classList.contains("show")) {
+                closeLightbox();
+            }
         });
     </script>
 </body>

@@ -1,13 +1,19 @@
-from flask import Blueprint, request, render_template, send_file
+from flask import Blueprint, request, render_template, send_file, abort, url_for
 from src.database import query_marine_data
 from src.config import Config
+from src.snapshot.file_store import parse_snapshot_date, read_metadata, read_snapshot_index, snapshot_dir
 import logging
 import pandas as pd
 import os
 import tempfile
-from datetime import datetime
+from datetime import datetime, date
 
 web_bp = Blueprint("web", __name__)
+
+def _available_nsea_snapshot_dates():
+    """從截圖任務預先產生的 index.json 取得可瀏覽日期清單。"""
+    index = read_snapshot_index()
+    return [item["date"] for item in index.get("dates", []) if item.get("date")]
 
 @web_bp.route("/", methods=["GET", "POST"])
 def query_data():
@@ -31,7 +37,61 @@ def query_data():
 
     logging.info(f"查詢結果: 第{page}頁, {len(results)} 筆資料, 總計: {total} 筆資料")
 
-    return render_template("query.html", results=results, stations=stations, page=page, total=total)
+    return render_template(
+        "query.html",
+        view_mode="marine_data",
+        results=results,
+        stations=stations,
+        page=page,
+        total=total,
+    )
+
+@web_bp.route("/nsea-screenshots", methods=["GET"])
+def nsea_screenshots():
+    available_dates = _available_nsea_snapshot_dates()
+    requested_date = request.args.get("date") or (available_dates[0] if available_dates else date.today().isoformat())
+
+    try:
+        snapshot_date = parse_snapshot_date(requested_date)
+    except ValueError:
+        abort(400, description="日期格式錯誤，請使用 YYYY-MM-DD")
+
+    metadata = read_metadata(snapshot_date)
+    areas = []
+    if metadata:
+        for area in metadata.get("areas", []):
+            item = dict(area)
+            if item.get("status") == "success" and item.get("file_name"):
+                item["image_url"] = url_for(
+                    "web.nsea_screenshot_image",
+                    snapshot_date=snapshot_date.isoformat(),
+                    filename=item["file_name"],
+                )
+            areas.append(item)
+
+    return render_template(
+        "query.html",
+        view_mode="nsea_screenshots",
+        selected_date=snapshot_date.isoformat(),
+        available_dates=available_dates,
+        metadata=metadata,
+        areas=areas,
+    )
+
+@web_bp.route("/nsea-screenshots/<snapshot_date>/<path:filename>", methods=["GET"])
+def nsea_screenshot_image(snapshot_date, filename):
+    try:
+        parsed_date = parse_snapshot_date(snapshot_date)
+    except ValueError:
+        abort(400, description="日期格式錯誤，請使用 YYYY-MM-DD")
+
+    base_dir = snapshot_dir(parsed_date).resolve()
+    image_path = (base_dir / filename).resolve()
+
+    if base_dir not in image_path.parents or image_path.suffix.lower() != ".png" or not image_path.exists():
+        abort(404)
+
+    return send_file(image_path, mimetype="image/png")
 
 @web_bp.route("/export_excel", methods=["GET"])
 def export_excel():
